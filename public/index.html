@@ -1,0 +1,242 @@
+<!-- This is an accelometer-based leveling tool, with some additional blips. Coded by Madis0 and ChatGPT o3-mini-high. -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Minecraft Player Finder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: #f0f0f0; /* default grey */
+      color: #000;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    /* Instruction text shown with the level interface */
+    #instructionText {
+      font-size: 1.5em;
+      padding: 20px;
+      text-align: center;
+      display: none;
+    }
+    /* Level bar using bar.png repeated across the screen */
+    #levelContainer {
+      width: 100%;
+      height: 25px;
+      position: relative;
+      background-image: url('bar.png');
+      background-repeat: repeat-x;
+      background-size: 60px 25px;
+      background-position: center;
+      image-rendering: pixelated;
+      display: none;
+    }
+    /* Main bubble (dot.png scaled 5× = 35×35) */
+    .bubble {
+      position: absolute;
+      width: 35px;
+      height: 35px;
+      top: -5px; /* vertically center over 25px bar */
+      image-rendering: pixelated;
+      transition: left 0.1s ease-out;
+    }
+    /* Extra dots: show dot image as background with tinted inner overlay */
+    .extra {
+      background: url('dot.png') no-repeat center;
+      background-size: contain;
+      position: absolute;
+    }
+    .extra::after {
+      content: "";
+      position: absolute;
+      /* Inner area: assuming dot.png is 7x7, inner area is 5x5 scaled to 25x25 */
+      top: 5px;
+      left: 5px;
+      width: 25px;
+      height: 25px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    /* Tint colors for extra dots */
+    .blue::after { background-color: blue; }
+    .yellow::after { background-color: yellow; }
+    .red::after { background-color: red; }
+    /* Message container for errors or non-landscape mode */
+    #messageContainer {
+      display: none;
+      font-size: 1.5em;
+      padding: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Level interface for mobile landscape -->
+  <div id="instructionText">Follow a dot to find someone to play with!</div>
+  <div id="levelContainer">
+    <img src="dot.png" alt="Main Bubble" id="bubble" class="bubble">
+    <div id="bubbleBlue" class="bubble extra blue"></div>
+    <div id="bubbleYellow" class="bubble extra yellow"></div>
+    <div id="bubbleRed" class="bubble extra red"></div>
+  </div>
+  <!-- Message container for portrait/desktop or errors -->
+  <div id="messageContainer">
+    Please view this website on a mobile device in landscape mode.
+  </div>
+
+  <script>
+    // Global flags and variables.
+    var errorShown = false; // remembers if the quantum error has been triggered.
+    var orientationReceived = false; // tracks if a valid orientation event has been received.
+    var orientationTimeout = null; // timeout ID for checking orientation availability.
+    var extraRatios = { blue: null, yellow: null, red: null };
+
+    // Generate random ratios for extra dots with minimum separation.
+    function generateExtraRatios(containerWidth) {
+      var maxExtra = containerWidth * 0.4;
+      var minSep = 17.5 / maxExtra; // minimum separation in ratio units (50% of 35px)
+      function randomRatio() { return Math.random() * 2 - 1; }
+      var blue, yellow, red, valid = false;
+      while (!valid) {
+        blue = randomRatio();
+        yellow = randomRatio();
+        red = randomRatio();
+        if (
+          Math.abs(blue - yellow) < minSep ||
+          Math.abs(blue - red) < minSep ||
+          Math.abs(yellow - red) < minSep
+        ) continue;
+        valid = true;
+      }
+      extraRatios.blue = blue;
+      extraRatios.yellow = yellow;
+      extraRatios.red = red;
+    }
+
+    // Update layout based on orientation and error state.
+    function updateLayout() {
+      var levelContainer = document.getElementById("levelContainer");
+      var instructionText = document.getElementById("instructionText");
+      var messageContainer = document.getElementById("messageContainer");
+      var isMobile = /Mobi/.test(navigator.userAgent);
+      var isLandscape = window.innerWidth > window.innerHeight;
+      
+      // If mobile and landscape:
+      if (isMobile && isLandscape) {
+        // If a quantum error has been triggered, always show that message.
+        if (errorShown) {
+          levelContainer.style.display = "none";
+          instructionText.style.display = "none";
+          messageContainer.style.display = "flex";
+          messageContainer.innerText = "Your browser seems to lack a quantum computing blockchain, please try a different device or browser.";
+          document.body.style.background = "#f0f0f0";
+        } else {
+          // Reset orientationReceived and start timeout for orientation availability.
+          orientationReceived = false;
+          if (orientationTimeout) clearTimeout(orientationTimeout);
+          orientationTimeout = setTimeout(function(){
+            if (!orientationReceived) {
+              errorShown = true;
+              var msg = document.getElementById("messageContainer");
+              msg.innerText = "Your browser seems to lack a quantum computing blockchain, please try a different device or browser.";
+              msg.style.display = "flex";
+              levelContainer.style.display = "none";
+              instructionText.style.display = "none";
+              document.body.style.background = "#f0f0f0";
+            }
+          }, 1000);
+          // Show level interface.
+          document.body.style.background = "url('bg.jpg') no-repeat center center / cover";
+          levelContainer.style.display = "block";
+          instructionText.style.display = "block";
+          messageContainer.style.display = "none";
+          levelContainer.style.backgroundImage = "url('bar.png')";
+          levelContainer.style.backgroundRepeat = "repeat-x";
+          levelContainer.style.backgroundSize = "60px 25px";
+          levelContainer.style.backgroundPosition = "center";
+          instructionText.style.color = "#fff";
+          // Generate extra ratios once.
+          if (extraRatios.blue === null) {
+            generateExtraRatios(levelContainer.clientWidth);
+          }
+        }
+      } else {
+        // For portrait or desktop mode, show the standard "landscape" message.
+        levelContainer.style.display = "none";
+        instructionText.style.display = "none";
+        messageContainer.style.display = "flex";
+        messageContainer.innerText = "Please view this website on a mobile device in landscape mode.";
+        document.body.style.background = "#f0f0f0";
+      }
+    }
+    
+    window.addEventListener("resize", updateLayout);
+    window.addEventListener("orientationchange", updateLayout);
+    updateLayout();
+
+    // Update bubble position if valid orientation data is available.
+    function updateBubblePosition(event) {
+      // Always mark that an orientation event was received.
+      orientationReceived = true;
+      var isMobile = /Mobi/.test(navigator.userAgent);
+      var isLandscape = window.innerWidth > window.innerHeight;
+      // Only update if in mobile landscape.
+      if (!(isMobile && isLandscape)) return;
+      
+      // If orientation data is invalid, trigger quantum error.
+      if (event.beta === null || event.gamma === null) {
+        errorShown = true;
+        var msg = document.getElementById("messageContainer");
+        msg.innerText = "Your browser seems to lack a quantum computing blockchain, please try a different device or browser.";
+        msg.style.display = "flex";
+        document.getElementById("levelContainer").style.display = "none";
+        document.getElementById("instructionText").style.display = "none";
+        document.body.style.background = "#f0f0f0";
+        return;
+      }
+      
+      var container = document.getElementById("levelContainer");
+      var containerWidth = container.clientWidth;
+      var bubble = document.getElementById("bubble");
+      
+      // Use event.beta for tilt in landscape; clamp between -45 and 45.
+      var tilt = event.beta || 0;
+      tilt = Math.max(-45, Math.min(45, tilt));
+      
+      // Map tilt to main bubble's horizontal position.
+      var mainOffset = ((tilt + 45) / 90) * (containerWidth - bubble.clientWidth);
+      bubble.style.left = mainOffset + "px";
+      
+      var maxExtra = containerWidth * 0.4;
+      function updateExtra(dotId, ratio) {
+        var dot = document.getElementById(dotId);
+        var extraOffset = ratio * maxExtra;
+        dot.style.left = (mainOffset + extraOffset) + "px";
+      }
+      updateExtra("bubbleBlue", extraRatios.blue);
+      updateExtra("bubbleYellow", extraRatios.yellow);
+      updateExtra("bubbleRed", extraRatios.red);
+    }
+    
+    // Always register deviceorientation listener.
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener("deviceorientation", updateBubblePosition, true);
+    } else {
+      // If not supported, trigger error immediately.
+      errorShown = true;
+      var msg = document.getElementById("messageContainer");
+      msg.innerText = "Your browser seems to lack a quantum computing blockchain, please try a different device or browser.";
+      msg.style.display = "flex";
+      document.getElementById("levelContainer").style.display = "none";
+      document.getElementById("instructionText").style.display = "none";
+      document.body.style.background = "#f0f0f0";
+    }
+  </script>
+</body>
+</html>

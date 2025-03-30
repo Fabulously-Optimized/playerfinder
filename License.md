@@ -22,3 +22,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <https://unlicense.org>
+
+---
+
+Images and screenshots are used by fair use, copyright Mojang Studios. https://www.minecraft.net/en-us/usage-guidelines

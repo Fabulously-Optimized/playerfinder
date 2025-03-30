@@ -1,1 +1,5 @@
-# testthing
+## Minecraft Player Finder
+
+See source for details.
+
+NOT AN OFFICIAL MINECRAFT SERVICE. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
